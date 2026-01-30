@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CregTariffImporter/CregTariffImporter.csproj" />
+  <Project Path="SpansBenchmarks/SpansBenchmarks.csproj" />
+</Solution>
