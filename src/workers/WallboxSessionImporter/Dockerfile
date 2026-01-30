@@ -49,7 +49,7 @@ RUN dotnet publish "WallboxSessionImporter.csproj" \
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled-extra AS final
 
 WORKDIR /app
-COPY --from=build /app/publish/CregTariffImporter .
+COPY --from=build /app/publish/WallboxSessionImporter .
 
 # If you use a non-root user in Container Apps
 USER $APP_UID
