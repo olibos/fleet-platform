@@ -1,4 +1,4 @@
-name: Deploy CregTariffImporter Docker Image
+name: Deploy WallboxSessionImporter Docker Image
 
 on:
   release:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-and-push:
-    if: startsWith(github.event.release.name, 'CREG - v')
+    if: startsWith(github.event.release.name, 'WALLBOX - v')
     runs-on: ubuntu-latest
 
     steps:
@@ -39,15 +39,15 @@ jobs:
       id: push
       uses: docker/build-push-action@v6
       with:
-        context: src/workers/CregTariffImporter
+        context: src/workers/WallboxSessionImporter
         push: true
-        tags: ghcr.io/${{ github.repository }}/creg-tariff-importer:${{ steps.extract.outputs.version }}
+        tags: ghcr.io/${{ github.repository }}/wallbox-session-importer:${{ steps.extract.outputs.version }}
         provenance: true  # Generate provenance attestation
         sbom: true  # Generate SBOM attestation
 
     - name: Attest image
       uses: actions/attest-build-provenance@v1
       with:
-        subject-name: ghcr.io/${{ github.repository }}/creg-tariff-importer
+        subject-name: ghcr.io/${{ github.repository }}/wallbox-session-importer
         subject-digest: ${{ steps.push.outputs.digest }}
         push-to-registry: true
