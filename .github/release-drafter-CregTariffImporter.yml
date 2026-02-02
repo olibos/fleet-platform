@@ -1,0 +1,6 @@
+_extends: fleet-platform:.github/release-drafter.yml
+name-template: 'CREG - v$RESOLVED_VERSION'
+tag-template: 'creg-v$RESOLVED_VERSION'
+tag-prefix: creg-v
+include-paths:
+  - "src/workers/CregTariffImporter"

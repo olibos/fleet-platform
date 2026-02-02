@@ -1,0 +1,6 @@
+_extends: fleet-platform:.github/release-drafter.yml
+name-template: 'WALLBOX - v$RESOLVED_VERSION'
+tag-template: 'wallbox-v$RESOLVED_VERSION'
+tag-prefix: wallbox-v
+include-paths:
+  - "src/workers/WallboxSessionImporter"
