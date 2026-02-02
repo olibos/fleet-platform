@@ -9,7 +9,7 @@
         <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
         <InvariantGlobalization>false</InvariantGlobalization>
         <InterceptorsNamespaces>$(InterceptorsNamespaces);Dapper.AOT</InterceptorsNamespaces>
-        <NoWarn>$(NoWarn);SA0001;SA1600;SA1309;SA1101;SA1501;SA1503</NoWarn>
+        <NoWarn>$(NoWarn);SA0001;SA1600;SA1309;SA1101;SA1501;SA1503;SA1601;SA1602</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

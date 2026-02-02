@@ -13,6 +13,22 @@ using WallboxSessionImporter.Serialization;
 
 public class WallboxService(HttpClient client, TimeProvider time)
 {
+    public IAsyncEnumerable<Charger> GetAllChargers(string groupUid, CancellationToken cancellationToken = default)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            ["filters"] = "[]",
+            ["include"] = "charger_info,charger_config,charger_status",
+            ["limit"] = "50",
+            ["offset"] = "0",
+        };
+
+        return Paginate(
+            QueryHelpers.AddQueryString($"/perseus/organizations/{groupUid}/chargers", query),
+            WallboxJsonSerializerContext.Default.ResponseListObjectCharger,
+            cancellationToken);
+    }
+
     public IAsyncEnumerable<Group> GetAllGroups(CancellationToken cancellationToken = default)
     {
         return Paginate(
@@ -34,7 +50,7 @@ public class WallboxService(HttpClient client, TimeProvider time)
                             {"filters":[{"field":"start_time","operator":"gte","value":{{from.Value.ToUnixTimeSeconds()}}},{"field":"start_time","operator":"lte","value":{{tomorrow.ToUnixTimeSeconds()}}}]}
                             """,
             ["fields[charger_charging_session]"] = string.Empty,
-            ["limit"] = "5000",
+            ["limit"] = "50",
             ["offset"] = "0",
         };
 
@@ -59,7 +75,19 @@ public class WallboxService(HttpClient client, TimeProvider time)
                 yield return item.Attributes;
             }
 
-            url = response.Links?.Next;
+            url = PatchUrl(url, response.Links?.Next);
         }
+    }
+
+    private string? PatchUrl(string url, Uri? linksNext)
+    {
+        if (linksNext is null) return null;
+
+        var baseUri = client.BaseAddress is not null ? new Uri(client.BaseAddress, url) : new Uri(url);
+        var result = new UriBuilder(baseUri)
+        {
+            Query = linksNext.Query,
+        };
+        return result.ToString();
     }
 }

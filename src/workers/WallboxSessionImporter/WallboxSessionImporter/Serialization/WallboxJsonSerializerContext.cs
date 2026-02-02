@@ -12,6 +12,7 @@ using WallboxSessionImporter.Models;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(Response<Object<WallboxToken>>))]
+[JsonSerializable(typeof(Response<List<Object<Charger>>>))]
 [JsonSerializable(typeof(Response<List<Object<Group>>>))]
 [JsonSerializable(typeof(Response<List<Object<Session>>>))]
 public partial class WallboxJsonSerializerContext : JsonSerializerContext
