@@ -35,6 +35,8 @@ await using var transaction = await repository.BeginTransaction();
 DateTimeOffset? from = DateTimeOffset.UtcNow.AddMonths(-1);
 var groups = await client.GetAllGroups().ToListAsync();
 await repository.UpsertGroups(groups, transaction);
+var chargers = groups.ToAsyncEnumerable().SelectMany(g => client.GetAllChargers(g.UniqueId));
+await repository.UpsertChargers(chargers, transaction);
 var sessions = groups.ToAsyncEnumerable().SelectMany(g => client.GetAllSessions(g.Id, from));
 await repository.UpsertSessions(sessions, transaction);
 await transaction.CommitAsync();

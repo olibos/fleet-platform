@@ -1,11 +1,14 @@
 // <copyright file="Response.cs" company="Olibos">
 // Copyright (c) Olibos. All rights reserved.
 // </copyright>
+
 #pragma warning disable SA1402
 
 namespace WallboxSessionImporter.Models;
 
 using System.Text.Json.Serialization;
+
+using WallboxSessionImporter.Serialization;
 
 public class Response<TModel>
 {
@@ -23,10 +26,13 @@ public record Meta([property:JsonPropertyName("count")] int Count);
 
 public record Links(
     [property: JsonPropertyName("self")]
-    string Self,
+    [property: JsonConverter(typeof(UriConverter))]
+    Uri Self,
     [property: JsonPropertyName("last")]
-    string? Last,
+    [property: JsonConverter(typeof(UriConverter))]
+    Uri? Last,
     [property: JsonPropertyName("next")]
-    string? Next);
+    [property: JsonConverter(typeof(UriConverter))]
+    Uri? Next);
 
 #pragma warning restore SA1402

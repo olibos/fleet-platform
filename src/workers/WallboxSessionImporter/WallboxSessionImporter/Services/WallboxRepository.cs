@@ -14,6 +14,34 @@ using WallboxSessionImporter.Models;
 
 public sealed class WallboxRepository(IOptions<Settings> options) : IDisposable, IAsyncDisposable
 {
+    private const string CreateTempChargerQuery =
+        """
+        CREATE TABLE #Charger
+        (
+            ConnectionStatus NVARCHAR(50) NOT NULL,
+            ConnectorType NVARCHAR(100) NULL,
+            Image NVARCHAR(500) NULL,
+            LastConnection DATETIMEOFFSET NOT NULL,
+            LocationId NVARCHAR(50) NULL,
+            LocationName NVARCHAR(200) NULL,
+            Model NVARCHAR(50) NULL,
+            ModelName NVARCHAR(100) NULL,
+            Name NVARCHAR(200) NULL,
+            OrganizationId NVARCHAR(50) NULL,
+            PartNumber NVARCHAR(50) NULL,
+            PayPerChargeEnabled BIT NOT NULL DEFAULT 0,
+            PayPerMonthEnabled BIT NOT NULL DEFAULT 0,
+            Puk INT NULL,
+            SerialNumber NVARCHAR(50) NULL,
+            SoftwareUpdateAvailable BIT NOT NULL DEFAULT 0,
+            Status INT NULL,
+            Timezone NVARCHAR(100) NULL,
+            UniqueIdentifier NVARCHAR(50) NULL,
+            CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+            UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET()
+        );
+        """;
+
     private const string CreateTempSessionQuery =
         """
         CREATE TABLE #Session
@@ -99,7 +127,7 @@ public sealed class WallboxRepository(IOptions<Settings> options) : IDisposable,
         }
     }
 
-    public async Task UpsertSessions(IAsyncEnumerable<Session> sessions, DbTransaction? transaction = null)
+    public async Task UpsertSessions(IAsyncEnumerable<Session> sessions, DbTransaction? transaction = null, CancellationToken cancellationToken = default)
     {
         await _connection.ExecuteAsync(CreateTempSessionQuery, transaction: transaction);
         using var copy = new SqlBulkCopy(
@@ -143,7 +171,7 @@ public sealed class WallboxRepository(IOptions<Settings> options) : IDisposable,
         copy.ColumnMappings.Add(nameof(Session.OrganizationUid), nameof(Session.OrganizationUid));
         copy.ColumnMappings.Add(nameof(Session.ChargerUid), nameof(Session.ChargerUid));
         copy.ColumnMappings.Add(nameof(Session.LocationUid), nameof(Session.LocationUid));
-        await copy.WriteToServerAsync(sessions);
+        await copy.WriteToServerAsync(sessions, cancellationToken: cancellationToken);
         Console.WriteLine($"Rows Imported: {copy.RowsCopied}");
 
         await _connection.ExecuteAsync(
@@ -177,5 +205,114 @@ public sealed class WallboxRepository(IOptions<Settings> options) : IDisposable,
                 );
             """,
             transaction: transaction);
+        await _connection.ExecuteAsync("drop table #Session", transaction: transaction);
+    }
+
+    public async Task UpsertChargers(IAsyncEnumerable<Charger> chargers, DbTransaction transaction, CancellationToken cancellationToken = default)
+    {
+        await _connection.ExecuteAsync(CreateTempChargerQuery, transaction: transaction);
+        using var copy = new SqlBulkCopy(
+            _connection,
+            SqlBulkCopyOptions.Default,
+            (SqlTransaction?)transaction);
+
+        copy.DestinationTableName = "#Charger";
+        copy.ColumnMappings.Add(nameof(Charger.ConnectionStatus), nameof(Charger.ConnectionStatus));
+        copy.ColumnMappings.Add(nameof(Charger.ConnectorType), nameof(Charger.ConnectorType));
+        copy.ColumnMappings.Add(nameof(Charger.Image), nameof(Charger.Image));
+        copy.ColumnMappings.Add(nameof(Charger.LastConnection), nameof(Charger.LastConnection));
+        copy.ColumnMappings.Add(nameof(Charger.LocationId), nameof(Charger.LocationId));
+        copy.ColumnMappings.Add(nameof(Charger.LocationName), nameof(Charger.LocationName));
+        copy.ColumnMappings.Add(nameof(Charger.Model), nameof(Charger.Model));
+        copy.ColumnMappings.Add(nameof(Charger.ModelName), nameof(Charger.ModelName));
+        copy.ColumnMappings.Add(nameof(Charger.Name), nameof(Charger.Name));
+        copy.ColumnMappings.Add(nameof(Charger.OrganizationId), nameof(Charger.OrganizationId));
+        copy.ColumnMappings.Add(nameof(Charger.PartNumber), nameof(Charger.PartNumber));
+        copy.ColumnMappings.Add(nameof(Charger.PayPerChargeEnabled), nameof(Charger.PayPerChargeEnabled));
+        copy.ColumnMappings.Add(nameof(Charger.PayPerMonthEnabled), nameof(Charger.PayPerMonthEnabled));
+        copy.ColumnMappings.Add(nameof(Charger.Puk), nameof(Charger.Puk));
+        copy.ColumnMappings.Add(nameof(Charger.SerialNumber), nameof(Charger.SerialNumber));
+        copy.ColumnMappings.Add(nameof(Charger.SoftwareUpdateAvailable), nameof(Charger.SoftwareUpdateAvailable));
+        copy.ColumnMappings.Add(nameof(Charger.Status), nameof(Charger.Status));
+        copy.ColumnMappings.Add(nameof(Charger.Timezone), nameof(Charger.Timezone));
+        copy.ColumnMappings.Add(nameof(Charger.UniqueIdentifier), nameof(Charger.UniqueIdentifier));
+        await copy.WriteToServerAsync(chargers, cancellationToken: cancellationToken);
+
+        await _connection.ExecuteAsync(
+            """
+            MERGE wallbox.Charger AS target
+            USING #Charger AS source
+            ON target.UniqueIdentifier = source.UniqueIdentifier
+            WHEN MATCHED THEN
+                UPDATE SET
+                    ConnectionStatus = source.ConnectionStatus,
+                    ConnectorType = source.ConnectorType,
+                    Image = source.Image,
+                    LastConnection = source.LastConnection,
+                    LocationId = source.LocationId,
+                    LocationName = source.LocationName,
+                    Model = source.Model,
+                    ModelName = source.ModelName,
+                    Name = source.Name,
+                    OrganizationId = source.OrganizationId,
+                    PartNumber = source.PartNumber,
+                    PayPerChargeEnabled = source.PayPerChargeEnabled,
+                    PayPerMonthEnabled = source.PayPerMonthEnabled,
+                    Puk = source.Puk,
+                    SerialNumber = source.SerialNumber,
+                    SoftwareUpdateAvailable = source.SoftwareUpdateAvailable,
+                    Status = source.Status,
+                    Timezone = source.Timezone,
+                    UpdatedAt = SYSDATETIMEOFFSET()
+            WHEN NOT MATCHED BY TARGET THEN
+                INSERT (
+                    ConnectionStatus,
+                    ConnectorType,
+                    Image,
+                    LastConnection,
+                    LocationId,
+                    LocationName,
+                    Model,
+                    ModelName,
+                    Name,
+                    OrganizationId,
+                    PartNumber,
+                    PayPerChargeEnabled,
+                    PayPerMonthEnabled,
+                    Puk,
+                    SerialNumber,
+                    SoftwareUpdateAvailable,
+                    Status,
+                    Timezone,
+                    UniqueIdentifier,
+                    CreatedAt,
+                    UpdatedAt
+                )
+                VALUES (
+                    ConnectionStatus,
+                    ConnectorType,
+                    Image,
+                    LastConnection,
+                    LocationId,
+                    LocationName,
+                    Model,
+                    ModelName,
+                    Name,
+                    OrganizationId,
+                    PartNumber,
+                    PayPerChargeEnabled,
+                    PayPerMonthEnabled,
+                    Puk,
+                    SerialNumber,
+                    SoftwareUpdateAvailable,
+                    Status,
+                    Timezone,
+                    UniqueIdentifier,
+                    SYSDATETIMEOFFSET(),
+                    SYSDATETIMEOFFSET()
+                );
+            """,
+            transaction: transaction);
+        await _connection.ExecuteAsync("drop table #Charger", transaction: transaction);
     }
 }
